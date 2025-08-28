@@ -1,0 +1,21 @@
+Package: Quant PCR analysis
+Title: PCR analysis
+Version: 0.0.1
+Authors@R: c(
+    person("Sanjay", "Singh",
+            email = "sanjay.singh@biopathogenix.com", 
+            role = c("aut", "cre")
+            
+           )
+    )
+Description: PCR analysis
+  include the packages on the build. This is required for r-shinylive version >= 0.3.0.
+License: MIT + file LICENSE
+Depends: R (>= 4.4)
+Imports: 
+shiny
+bslib
+shinyWidgets
+shinycssloaders
+DT
+Encoding: UTF-8
