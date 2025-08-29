@@ -11,5 +11,6 @@ Imports:
     bslib,
     shinyWidgets,
     shinycssloaders,
-    DT
+    DT,
+    curl
 Encoding: UTF-8
