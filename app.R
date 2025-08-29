@@ -1,16 +1,23 @@
-# --- Shiny UI Definition ---
+# --- Load Required Libraries ---
 library(shiny)
 library(bslib)
+library(ggplot2)
 library(shinyWidgets)
 library(shinycssloaders)
 library(DT)
+library(readxl)
+library(purrr)
+library(dplyr)
+library(tidyr)
+library(stringr)
 
+# --- Shiny UI Definition ---
 ui <- page_fluid(
   theme = bs_theme(
     version = 5,
-    bootswatch = "cerulean",  # Options: flatly, cosmo, darkly, lux, etc.
-    #base_font = font_google("Roboto"),
-    #heading_font = font_google("Montserrat"),
+    bootswatch = "cerulean",
+    base_font = font_google("Roboto"),
+    heading_font = font_google("Montserrat"),
     bg = "#f8f9fa",
     fg = "#212529",
     primary = "#0073e6"
@@ -76,7 +83,7 @@ ui <- page_fluid(
             card_body(
               h3("Welcome to the BioRad Advanced qPCR Analyzer"),
               p("This application provides a powerful and intuitive interface for analyzing 
-                 BioRad qPCR amplification data. You can:"),
+                BioRad qPCR amplification data. You can:"),
               tags$ul(
                 tags$li("Upload Amplification Data and Plate Layout (.xlsx)"),
                 tags$li("Visualize amplification plots with customizable options"),
@@ -134,15 +141,6 @@ ui <- page_fluid(
   )
 )
 
-
-
-
-
-
-
-
-
-
 # --- Shiny Server Logic ---
 server <- function(input, output, session) {
   
@@ -156,7 +154,8 @@ server <- function(input, output, session) {
     df %>% 
       mutate(
         Well = toupper(str_trim(Well)),
-        Row = str_extract(Well, "^[A-H]"),
+        # FIX: Changed [A-H] to [A-Z] to support 384-well plates and beyond.
+        Row = str_extract(Well, "^[A-Z]"), 
         Col = str_extract(Well, "[0-9]+$"),
         Well_formatted = paste0(Row, sprintf("%02d", as.numeric(Col))),
         Cq = as.numeric(Cq)
@@ -180,7 +179,8 @@ server <- function(input, output, session) {
     amplification_data() %>%
       mutate(
         Well = toupper(str_trim(Well)),
-        Row = str_extract(Well, "^[A-H]"),
+        # FIX: Changed [A-H] to [A-Z] here as well for consistency.
+        Row = str_extract(Well, "^[A-Z]"), 
         Col = str_extract(Well, "[0-9]+$"),
         Well_formatted = paste0(Row, sprintf("%02d", as.numeric(Col)))
       ) %>%
@@ -225,6 +225,7 @@ server <- function(input, output, session) {
   precision_data <- reactive({
     req(plot_data_filtered())
     plot_data_filtered() %>%
+      filter(!is.na(Cq)) %>%
       distinct(Well, Sample, Cq) %>%
       group_by(Sample) %>%
       summarise(
@@ -238,7 +239,7 @@ server <- function(input, output, session) {
   precision_plot_object <- reactive({
     req(plot_data_filtered())
     
-    df <- plot_data_filtered() %>% distinct(Well, Sample, Cq)
+    df <- plot_data_filtered() %>% filter(!is.na(Cq)) %>% distinct(Well, Sample, Cq)
     
     ggplot(df, aes(x = Sample, y = Cq, color = Sample)) +
       geom_jitter(width = 0.2, size = 3, alpha = 0.8) +
@@ -272,7 +273,7 @@ server <- function(input, output, session) {
       p <- p + geom_line(data = df_avg, aes(x = Cycle, y = RFU_mean, color = Sample), linewidth = input$line_width) +
         geom_ribbon(data = df_avg, aes(x = Cycle, ymin = RFU_mean - RFU_sd, ymax = RFU_mean + RFU_sd, fill = Sample), alpha = 0.2, color = NA)
       if(input$show_cq) {
-        cq_label_data <- df_avg %>% distinct(Sample, Cq_mean)
+        cq_label_data <- df_avg %>% filter(!is.na(Cq_mean)) %>% distinct(Sample, Cq_mean)
         p <- p + geom_vline(data = cq_label_data, aes(xintercept = Cq_mean, color = Sample), linetype = "dashed", linewidth = input$line_width * 0.8) +
           geom_text(data = cq_label_data, aes(x = Cq_mean, y = y_max, label = round(Cq_mean, 2), color = Sample), size = input$cq_font_size, show.legend = FALSE, angle = 90, vjust = 1.5, hjust = 1)
       }
@@ -280,8 +281,8 @@ server <- function(input, output, session) {
       df_ind <- plot_data_filtered()
       p <- p + geom_line(data = df_ind, aes(x = Cycle, y = RFU, group = Well, color = Sample), alpha = 0.8, linewidth = input$line_width)
       if(input$show_cq) {
-        cq_lines_data <- df_ind %>% distinct(Well, Sample, Cq)
-        cq_label_data <- df_ind %>% group_by(Sample) %>% summarise(Cq_mean = mean(Cq, na.rm = TRUE), .groups = "drop")
+        cq_lines_data <- df_ind %>% filter(!is.na(Cq)) %>% distinct(Well, Sample, Cq)
+        cq_label_data <- df_ind %>% filter(!is.na(Cq)) %>% group_by(Sample) %>% summarise(Cq_mean = mean(Cq, na.rm = TRUE), .groups = "drop")
         p <- p + geom_vline(data = cq_lines_data, aes(xintercept = Cq, color = Sample), linetype = "dashed", linewidth = input$line_width * 0.8) +
           geom_text(data = cq_label_data, aes(x = Cq_mean, y = y_max, label = round(Cq_mean, 2), color = Sample), size = input$cq_font_size, show.legend = FALSE, angle = 90, vjust = 1.5, hjust = 1)
       }
@@ -306,7 +307,7 @@ server <- function(input, output, session) {
   
   output$download_data <- downloadHandler(
     filename = function() {
-      paste0("amplification_data-", input$selected_fluorophore, "-", Sys.Date(), ".csv")
+      paste0("plotted_data-", input$selected_fluorophore, "-", Sys.Date(), ".csv")
     },
     content = function(file) {
       df <- if (input$show_average) plot_data_averaged() else plot_data_filtered()
@@ -336,6 +337,5 @@ server <- function(input, output, session) {
   )
 }
 
-# Run the application 
-
+# --- Run the Application ---
 shinyApp(ui = ui, server = server)
