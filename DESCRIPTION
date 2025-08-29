@@ -1,4 +1,4 @@
-Package: Quant PCR analysis
+Package: QuantPCRanalysis
 Title: PCR analysis
 Version: 0.0.1
 Authors@R: c(
