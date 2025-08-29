@@ -9,8 +9,12 @@ Depends: R (>= 4.4)
 Imports: 
     shiny,
     bslib,
+    ggplot2,
     shinyWidgets,
     shinycssloaders,
     DT,
-    curl
+    readxl,
+    dplyr,
+    tidyr,
+   stringr    
 Encoding: UTF-8
