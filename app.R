@@ -9,8 +9,8 @@ ui <- page_fluid(
   theme = bs_theme(
     version = 5,
     bootswatch = "cerulean",  # Options: flatly, cosmo, darkly, lux, etc.
-    base_font = font_google("Roboto"),
-    heading_font = font_google("Montserrat"),
+    #base_font = font_google("Roboto"),
+    #heading_font = font_google("Montserrat"),
     bg = "#f8f9fa",
     fg = "#212529",
     primary = "#0073e6"
@@ -337,4 +337,5 @@ server <- function(input, output, session) {
 }
 
 # Run the application 
+
 shinyApp(ui = ui, server = server)
