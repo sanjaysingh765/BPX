@@ -2,9 +2,11 @@ Package: Quant PCR analysis
 Title: PCR analysis
 Version: 0.0.1
 Authors@R: c(
-    person("Sanjay", "Singh",
-           email = "sanjay.singh@biopathogenix.com", 
-           role = c("aut", "cre"))
+    person(
+        "Sanjay", "Singh",
+        email = "sanjay.singh@biopathogenix.com",
+        role = c("aut", "cre")
+    )
 )
 Description: PCR analysis includes the packages on the build. This is required for
     r-shinylive version >= 0.3.0.
